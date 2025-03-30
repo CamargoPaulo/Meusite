@@ -1,4 +1,4 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -7,7 +7,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
-        /* Estilos permanecem inalterados */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f9f9f9;
@@ -190,14 +189,14 @@
     window.onload = async () => {
         const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` });
         db = new SQL.Database();
-        db.run(`
-            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT);
+        db.run(
+            `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT);
             CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price REAL, quantity INTEGER);
             CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, contact TEXT);
             CREATE TABLE IF NOT EXISTS suppliers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, contact TEXT);
             CREATE TABLE IF NOT EXISTS stock (id INTEGER PRIMARY KEY AUTOINCREMENT, product TEXT, quantity INTEGER);
-            CREATE TABLE IF NOT EXISTS sales (id INTEGER PRIMARY KEY AUTOINCREMENT, client TEXT, product TEXT, quantity INTEGER, total REAL);
-        `);
+            CREATE TABLE IF NOT EXISTS sales (id INTEGER PRIMARY KEY AUTOINCREMENT, client TEXT, product TEXT, quantity INTEGER, total REAL);`
+        );
     };
 
     function handleLogin(event) {
@@ -247,13 +246,14 @@
 
     function getFormHTML(module) {
         const fields = {
-            users: ['name', 'password','email'],
+            users: ['name', 'password', 'email'],
             products: ['name', 'price', 'quantity'],
             clients: ['name', 'contact'],
             suppliers: ['name', 'contact'],
             stock: ['product', 'quantity'],
-            sales: ['client', 'product', 'quantity', 'total', 'price']
+            sales: ['client', 'product', 'quantity', 'total']
         }[module];
+
         let form = `<h2>${module.toUpperCase()}</h2><form onsubmit="saveData(event, '${module}')">`;
 
         fields.forEach(f => {

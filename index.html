@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -97,20 +97,6 @@
             margin: 20px auto;
             width: 90%;
             max-width: 600px;
-        }
-        .actions {
-            display: flex;
-            justify-content: space-around;
-        }
-        .actions button {
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .actions button:hover {
-            background-color: #cc0000;
         }
         @media (max-width: 768px) {
             .container {
@@ -261,19 +247,18 @@
 
     function getFormHTML(module) {
         const fields = {
-            users: ['username', 'password'],
+            users: ['name', 'password','email'],
             products: ['name', 'price', 'quantity'],
             clients: ['name', 'contact'],
             suppliers: ['name', 'contact'],
             stock: ['product', 'quantity'],
-            sales: ['client', 'product', 'quantity', 'total']
+            sales: ['client', 'product', 'quantity', 'total', 'price']
         }[module];
-
         let form = `<h2>${module.toUpperCase()}</h2><form onsubmit="saveData(event, '${module}')">`;
 
         fields.forEach(f => {
             const type = (f === 'price' || f === 'quantity' || f === 'total') ? 'number' : 'text';
-            form += `<div class="form-group"><label>${f.charAt(0).toUpperCase() + f.slice(1)}:</label><input type="${type}" name="${f}" id="${f}" required></div>`;
+            form += `<div class="form-group"><label>${f === 'client' ? 'Cliente' : f}:</label><input type="${type}" name="${f}" id="${f}" required></div>`;
         });
 
         form += `<input type="submit" value="Salvar"></form><table id="${module}-table"></table>`;
@@ -282,39 +267,46 @@
 
     function saveData(e, module) {
         e.preventDefault();
-        const inputs = e.target.querySelectorAll("input[name]");
+        const inputs = e.target.querySelectorAll("input[name], select[name]");
         const columns = [...inputs].map(i => i.name);
         const values = [...inputs].map(i => i.value);
 
-        let query = `INSERT INTO ${module} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
-        db.run(query, values);
+        if (module === "products") {
+            const [name, price, quantity] = values;
+            db.run("INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)", [name, price, quantity]);
+            db.run("INSERT INTO stock (product, quantity) VALUES (?, ?)", [name, quantity]);
+        } else if (module === "sales") {
+            const [client, product, qtySale, total, price] = values;
+            const res = db.exec("SELECT * FROM stock WHERE product = ?", [product]);
+            if (res.length > 0) {
+                let currentQty = res[0].values[0][2];
+                let newQty = currentQty - qtySale;
+                db.run("UPDATE stock SET quantity = ? WHERE product = ?", [newQty, product]);
+            } else {
+                db.run("INSERT INTO stock (product, quantity) VALUES (?, ?)", [product, -qtySale]);
+            }
+            db.run("INSERT INTO sales (client, product, quantity, total) VALUES (?, ?, ?, ?)", [client, product, qtySale, total]);
+        } else {
+            db.run(`INSERT INTO ${module} (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')})`, values);
+        }
 
-        loadTable(module);
+        if (module === "finance") {
+            loadFinanceTable();
+        } else {
+            loadTable(module);
+        }
+
         e.target.reset();
     }
 
     function loadTable(module) {
         const table = db.exec(`SELECT * FROM ${module}`);
         const tableHTML = table[0]?.values.map(row => 
-            `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}<td class="actions">
-                <button onclick="editData('${module}', ${row[0]})">Alterar</button>
-                <button onclick="deleteData('${module}', ${row[0]})">Excluir</button>
-            </td></tr>` 
+            `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>` 
         ).join('') || '';
         document.getElementById(`${module}-table`).innerHTML = 
-            `<thead><tr>${table[0]?.columns.map(col => `<th>${col}</th>`).join('')}<th>Ações</th></tr></thead>
+            `<thead><tr>${table[0]?.columns.map(col => `<th>${col}</th>`).join('')}</tr></thead>
             <tbody>${tableHTML}</tbody>`;
-    }
-
-    function deleteData(module, id) {
-        db.run(`DELETE FROM ${module} WHERE id = ?`, [id]);
-        loadTable(module);
-    }
-
-    function editData(module, id) {
-        const row = db.exec(`SELECT * FROM ${module} WHERE id = ?`, [id])[0].values[0];
-        const inputs = document.querySelectorAll(`#${module}-table tr[data-id='${id}'] td input`);
-        inputs.forEach((input, idx) => input.value = row[idx + 1]);
     }
 
     function loadFinanceTable() {
